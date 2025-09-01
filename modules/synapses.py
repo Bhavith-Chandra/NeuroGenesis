@@ -6,8 +6,6 @@ based on its activation history and current state.
 """
 
 import numpy as np
-import torch
-import torch.nn as nn
 from typing import Optional, Tuple
 
 

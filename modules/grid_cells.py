@@ -6,8 +6,6 @@ and navigation, inspired by hippocampal grid cells.
 """
 
 import numpy as np
-import torch
-import torch.nn as nn
 from typing import Tuple, List, Optional
 import math
 
@@ -103,8 +101,9 @@ class GridCellEncoder:
             # Add noise for realism
             activation += np.random.normal(0, self.noise_level)
             
-            # Apply sigmoid activation function
+            # Apply sigmoid activation function and ensure bounds
             activation = 1.0 / (1.0 + np.exp(-activation))
+            activation = np.clip(activation, 0.0, 1.0)  # Ensure bounds
             
             activations[i] = activation
         
@@ -174,10 +173,10 @@ class GridCellEncoder:
         if initial_guess is None:
             initial_guess = np.array([0.0, 0.0])
         
-        # Simple gradient descent to find position that maximizes activation
+        # Improved gradient descent with better convergence
         position = initial_guess.copy()
-        learning_rate = 0.01
-        max_iterations = 100
+        learning_rate = 0.005  # Reduced learning rate for stability
+        max_iterations = 200   # More iterations for better convergence
         
         for _ in range(max_iterations):
             # Compute gradient
@@ -188,18 +187,20 @@ class GridCellEncoder:
                 proj1 = np.dot(position, params['basis1']) + params['phase'][0]
                 proj2 = np.dot(position, params['basis2']) + params['phase'][1]
                 
-                # Simplified gradient computation
+                # Improved gradient computation
                 target_activation = activations[i]
                 current_activation = self._hexagonal_activation(proj1, proj2, params['scale'])
                 
-                # Gradient contribution
+                # Gradient contribution with better scaling
                 diff = target_activation - current_activation
-                gradient += diff * (params['basis1'] + params['basis2'])
+                gradient += diff * (params['basis1'] + params['basis2']) * 0.1  # Scale factor
             
-            # Update position
+            # Update position with gradient clipping
+            gradient_norm = np.linalg.norm(gradient)
+            if gradient_norm > 1.0:
+                gradient = gradient / gradient_norm
+            
             position += learning_rate * gradient
-            
-            # Optional: add momentum or adaptive learning rate here
         
         return position
     
@@ -230,10 +231,10 @@ class GridCellEncoder:
                 position = np.array([X[i, j], Y[i, j]])
                 activations = self.encode_position(position)
                 
-                # Sum activations for the specified scale
+                # Sum activations for the specified scale and normalize
                 start_idx = scale_idx * self.num_orientations
                 end_idx = start_idx + self.num_orientations
-                Z[i, j] = np.sum(activations[start_idx:end_idx])
+                Z[i, j] = np.sum(activations[start_idx:end_idx]) / self.num_orientations  # Normalize by number of orientations
         
         return X, Y, Z
     
@@ -295,8 +296,9 @@ class HierarchicalGridEncoder:
         # Generate geometric progression of scales
         grid_scales = [base_scale * (scale_ratio ** i) for i in range(num_scales)]
         
-        # Create individual grid encoders for each scale
+        # Create individual grid encoders for each scale with consistent phases
         self.grid_encoders = []
+        np.random.seed(42)  # Ensure consistent phases across scales
         for scale in grid_scales:
             encoder = GridCellEncoder(
                 grid_scales=[scale],
