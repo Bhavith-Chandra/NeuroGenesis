@@ -2,6 +2,8 @@
 
 A cutting-edge neural architecture framework inspired by biological neural systems, featuring metaplastic synapses and grid cell encoders for advanced spatial representation and adaptive learning.
 
+# NOTE: for Comments and Documentation, I've been using AI Tools for ease
+
 ## 🌟 Vision & Mission
 
 **NeuroGenesis** aims to bridge the gap between biological neural systems and artificial intelligence by implementing biologically-inspired neural architectures that can:
